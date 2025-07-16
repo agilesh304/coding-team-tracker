@@ -16,6 +16,12 @@ try:
     st.write(firebase_key_dict.keys())  # check keys exist
 except Exception as e:
     st.error(f"Failed to parse firebase_json: {e}")
+    
+if not firebase_admin._apps:
+    cred = credentials.Certificate(firebase_key_dict)  # your parsed JSON dict
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client() 
 
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
