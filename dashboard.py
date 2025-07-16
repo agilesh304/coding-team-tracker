@@ -12,7 +12,7 @@ st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="w
 if not firebase_admin._apps:
     firebase_key_dict = json.loads(st.secrets["firebase_json"])
     cred = credentials.Certificate(firebase_key_dict)
-    initialize_app(cred)
+    firebase_admin.initialize_app(cred)
 
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
