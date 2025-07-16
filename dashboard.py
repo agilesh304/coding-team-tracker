@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore
 import pandas as pd
 from datetime import datetime, timedelta
 import plotly.express as px
+import json 
 
 st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="wide")
 
