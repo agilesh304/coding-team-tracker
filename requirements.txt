@@ -1,0 +1,10 @@
+streamlit
+firebase-admin
+pandas
+requests
+beautifulsoup4
+plotly
+google-auth
+gspread
+oauth2client
+python-dotenv
