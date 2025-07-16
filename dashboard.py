@@ -24,14 +24,22 @@ st.title("📊 Coding Team Daily & Weekly Tracker")
 @st.cache_data
 def load_data():
     rows = []
-    users = db.collection('users').list_documents()
-    for u in users:
-        user_id = u.id
-        docs = u.collection('daily_totals').stream()
-        for doc in docs:
-            d = doc.to_dict()
-            d['user'] = user_id
-            rows.append(d)
+    try:
+        users_iter = db.collection('users').list_documents()
+        users = list(users_iter)
+        print(f"Number of users found: {len(users)}")
+        if not users:
+            st.warning("No users found in Firestore.")
+        for u in users:
+            user_id = u.id
+            docs = u.collection('daily_totals').stream()
+            for doc in docs:
+                d = doc.to_dict()
+                d['user'] = user_id
+                rows.append(d)
+    except Exception as e:
+        st.error(f"Error fetching Firestore data: {e}")
+        return pd.DataFrame()
     return pd.DataFrame(rows)
 
 df = load_data()
