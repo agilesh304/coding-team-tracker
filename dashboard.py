@@ -9,9 +9,10 @@ st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="w
 
 # 🔥 Initialize Firebase Admin once
 if not firebase_admin._apps:
-    cred = credentials.Certificate("coding-team-profiles-f261cdfc13d8.json")
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
+    firebase_key_dict = json.loads(st.secrets["firebase_json"])
+    cred = credentials.Certificate(firebase_key_dict)
+    initialize_app(cred)
+
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
 
