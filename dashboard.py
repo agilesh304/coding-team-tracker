@@ -9,10 +9,13 @@ import json
 st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="wide")
 
 # 🔥 Initialize Firebase Admin once
-if not firebase_admin._apps:
-    firebase_key_dict = json.loads(st.secrets["firebase_json"])
-    cred = credentials.Certificate(firebase_key_dict)
-    firebase_admin.initialize_app(cred)
+firebase_json_str = st.secrets["firebase_json"]
+try:
+    firebase_key_dict = json.loads(firebase_json_str)
+    st.write("Loaded JSON successfully!")
+    st.write(firebase_key_dict.keys())  # check keys exist
+except Exception as e:
+    st.error(f"Failed to parse firebase_json: {e}")
 
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
