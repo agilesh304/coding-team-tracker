@@ -1,0 +1,32 @@
+name: Daily Scraper
+
+on:
+  schedule:
+    - cron: '30 19 * * *'  # Runs daily at 1:00 AM IST
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily_scraper.py
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          # Add other env variables if needed (like email creds)
+        run: |
+          echo "$FIREBASE_CREDENTIALS" > coding-team-profiles-f261cdfc13d8.json
+          python daily_scraper.py
