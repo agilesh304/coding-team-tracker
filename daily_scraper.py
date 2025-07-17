@@ -235,33 +235,42 @@ def get_leetcode_total(profile_url):
 
 
 
+import requests
+from bs4 import BeautifulSoup
+import re
+
 def get_skillrack_total(skillrack_url):
     if not skillrack_url:
         return None
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context()
-            page = context.new_page()
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
+            "Referer": "https://skillrack.com/",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
 
-            page.goto(skillrack_url, timeout=15000)
-            page.wait_for_timeout(3000)  # wait 3 seconds
+        response = requests.get(skillrack_url, headers=headers, timeout=15)
 
-            stats = page.query_selector_all("div.ui.six.small.statistics > div.statistic")
-            for stat in stats:
-                label = stat.query_selector("div.label")
-                value = stat.query_selector("div.value")
-                if label and label.inner_text().strip() == "PROGRAMS SOLVED":
-                    text = value.inner_text()
-                    match = re.search(r"\d+", text)
-                    browser.close()
-                    return int(match.group()) if match else 0
-
-            browser.close()
+        if response.status_code != 200:
+            print(f"❌ Failed to fetch SkillRack page, status: {response.status_code}")
             return None
-    except Exception as e:
-        print(f"❌ SkillRack Playwright scrape failed: {e}")
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        stats = soup.select("div.ui.six.small.statistics > div.statistic")
+
+        for stat in stats:
+            label = stat.select_one("div.label")
+            value = stat.select_one("div.value")
+            if label and label.get_text(strip=True) == "PROGRAMS SOLVED":
+                text = value.get_text()
+                match = re.search(r"\d+", text)
+                return int(match.group()) if match else 0
+
         return None
+    except Exception as e:
+        print(f"❌ Error scraping SkillRack with requests: {e}")
+        return None
+
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
