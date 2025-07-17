@@ -23,8 +23,8 @@ try:
         "universe_domain": st.secrets["firebase"]["universe_domain"]
     }
 
-    st.success("✅ Firebase secrets loaded successfully!")
-    st.write("🔑 Keys available:", list(firebase_key_dict.keys()))
+    # st.success("✅ Firebase secrets loaded successfully!")
+    # st.write("🔑 Keys available:", list(firebase_key_dict.keys()))
 
 except Exception as e:
     st.error(f"❌ Failed to load Firebase secrets: {e}")
