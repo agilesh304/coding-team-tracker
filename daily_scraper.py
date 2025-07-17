@@ -35,18 +35,20 @@ def send_email_summary(to_email, subject, body, from_email, app_password):
 firebase_key_json = os.environ.get("FIREBASE_CREDENTIALS")
 
 if firebase_key_json is None:
-    raise ValueError("FIREBASE_CREDENTIALS environment variable not found.")
+    raise ValueError("❌ FIREBASE_CREDENTIALS environment variable not found.")
 
-# Parse JSON string into a dictionary
-firebase_key_dict = json.loads(firebase_key_json)
+# Write the string content to a temporary JSON file
+with open("firebase_temp_key.json", "w") as f:
+    f.write(firebase_key_json)
 
-# Initialize Firebase app
-cred = credentials.Certificate(firebase_key_dict)
+# Initialize Firebase
+cred = credentials.Certificate("firebase_temp_key.json")
 try:
     firebase_admin.get_app()
 except ValueError:
     firebase_admin.initialize_app(cred)
 
+# Initialize Firestore
 db = firestore.client()
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
@@ -253,7 +255,11 @@ def get_skillrack_total(url, retries=2, delay=2):
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
     df = read_google_sheet("coding_team_profiles")
-    df.columns = df.columns.str.strip()
+    if df is None:
+        print("❌ Failed to read Google Sheet. `df` is None.")
+        return
+    else:
+        df.columns = df.columns.str.strip()
     print(f"✅ Read {len(df)} rows")
 
         # your Gmail
