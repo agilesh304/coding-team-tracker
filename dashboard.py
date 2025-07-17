@@ -8,18 +8,19 @@ import json
 
 st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="wide")
 
+# 🔥 Initialize Firebase Admin once using secrets.toml
 try:
     firebase_key_dict = {
-        "type": st.secrets["firebase_json"]["type"],
-        "project_id": st.secrets["firebase_json"]["project_id"],
-        "private_key_id": st.secrets["firebase_json"]["private_key_id"],
-        "private_key": st.secrets["firebase_json"]["private_key"],
-        "client_email": st.secrets["firebase_json"]["client_email"],
-        "client_id": st.secrets["firebase_json"]["client_id"],
-        "auth_uri": st.secrets["firebase_json"]["auth_uri"],
-        "token_uri": st.secrets["firebase_json"]["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["firebase_json"]["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["firebase_json"]["client_x509_cert_url"]
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"],
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"]
     }
 
     st.success("✅ Firebase secrets loaded successfully!")
