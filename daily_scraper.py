@@ -9,6 +9,8 @@ from read_google_sheet import read_google_sheet
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import os
+import json
 
 def send_email_summary(to_email, subject, body, from_email, app_password):
     try:
@@ -30,13 +32,22 @@ def send_email_summary(to_email, subject, body, from_email, app_password):
         print(f"⚠ Failed to send email to {to_email}: {e}")
 
 # ————— FIREBASE SETUP —————
-cred = credentials.Certificate("coding-team-profiles-f261cdfc13d8.json")
+firebase_key_json = os.environ.get("FIREBASE_CREDENTIALS")
+
+if firebase_key_json is None:
+    raise ValueError("FIREBASE_CREDENTIALS environment variable not found.")
+
+# Parse JSON string into a dictionary
+firebase_key_dict = json.loads(firebase_key_json)
+
+# Initialize Firebase app
+cred = credentials.Certificate(firebase_key_dict)
 try:
     firebase_admin.get_app()
 except ValueError:
     firebase_admin.initialize_app(cred)
-db = firestore.client()
 
+db = firestore.client()
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 # ————— NEW SCRAPERS —————
@@ -253,7 +264,7 @@ def daily_scrape_all():
 
     for _, row in df.iterrows():
         name = row.get('Name')
-        email = row.get('Email ID')
+        email = row.get('Email IDd')
         lc_url = row.get("LeetCode ID (eg: Gfz6n0WdOg or https://leetcode.com/u/Gfz6n0WdOg/)", "")
         sr_url = row.get("Skillrack Profile URL", "")
         cc_id = row.get("CodeChef Profile URL", "")
