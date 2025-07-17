@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import json
+from playwright.sync_api import sync_playwright
 
 def send_email_summary(to_email, subject, body, from_email, app_password):
     try:
@@ -232,37 +233,35 @@ def get_leetcode_total(profile_url):
         pass
     return 0
 
-def get_skillrack_total(url, retries=2, delay=2):
-    if not url:
-        return 0
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-        "Referer": "https://www.skillrack.com/",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
 
-    for attempt in range(1, retries + 2):
-        try:
-            print(f"🔄 Attempt {attempt} to fetch SkillRack data...")
-            time.sleep(delay)
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, "html.parser")
-                for stat in soup.select("div.ui.six.small.statistics > div.statistic"):
-                    lbl = stat.find("div", class_="label")
-                    if lbl and lbl.get_text(strip=True) == "PROGRAMS SOLVED":
-                        val = stat.find("div", class_="value")
-                        nums = re.findall(r"\d+", val.get_text()) if val else []
-                        return int(nums[0]) if nums else 0
-            else:
-                print(f"❌ SkillRack request failed with status code {response.status_code}")
-        except Exception as e:
-            print(f"❌ Exception occurred during SkillRack scrape: {e}")
-    
-    print("❌ All SkillRack attempts failed.")
-    return None
+
+def get_skillrack_total(skillrack_url):
+    if not skillrack_url:
+        return None
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+
+            page.goto(skillrack_url, timeout=15000)
+            page.wait_for_timeout(3000)  # wait 3 seconds
+
+            stats = page.query_selector_all("div.ui.six.small.statistics > div.statistic")
+            for stat in stats:
+                label = stat.query_selector("div.label")
+                value = stat.query_selector("div.value")
+                if label and label.inner_text().strip() == "PROGRAMS SOLVED":
+                    text = value.inner_text()
+                    match = re.search(r"\d+", text)
+                    browser.close()
+                    return int(match.group()) if match else 0
+
+            browser.close()
+            return None
+    except Exception as e:
+        print(f"❌ SkillRack Playwright scrape failed: {e}")
+        return None
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
