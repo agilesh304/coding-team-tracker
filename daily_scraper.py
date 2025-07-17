@@ -234,37 +234,32 @@ def get_leetcode_total(profile_url):
 
 def get_skillrack_total(url, retries=2, delay=2):
     if not url:
-        print("⚠️ SkillRack URL is missing.")
-        return None  # Use None to indicate error
+        return 0
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+        "Referer": "https://www.skillrack.com/",
+        "Accept-Language": "en-US,en;q=0.9"
+    }
 
-    for attempt in range(retries + 1):
+    for attempt in range(1, retries + 2):
         try:
-            print(f"🔄 Attempt {attempt + 1} to fetch SkillRack data...")
+            print(f"🔄 Attempt {attempt} to fetch SkillRack data...")
             time.sleep(delay)
-            r = requests.get(url, headers=HEADERS, timeout=10)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, "html.parser")
-                stats = soup.select("div.ui.six.small.statistics > div.statistic")
-
-                for stat in stats:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, "html.parser")
+                for stat in soup.select("div.ui.six.small.statistics > div.statistic"):
                     lbl = stat.find("div", class_="label")
-                    if lbl and lbl.get_text(strip=True).upper() == "PROGRAMS SOLVED":
+                    if lbl and lbl.get_text(strip=True) == "PROGRAMS SOLVED":
                         val = stat.find("div", class_="value")
-                        if val:
-                            nums = re.findall(r"\d+", val.get_text())
-                            if nums:
-                                total = int(nums[0])
-                                print(f"✅ SkillRack programs solved: {total}")
-                                return total
-                            else:
-                                print("⚠️ No number found in value tag.")
-                        else:
-                            print("⚠️ 'value' div not found.")
-                print("❌ 'PROGRAMS SOLVED' stat not found on the page.")
+                        nums = re.findall(r"\d+", val.get_text()) if val else []
+                        return int(nums[0]) if nums else 0
             else:
-                print(f"❌ SkillRack request failed with status code {r.status_code}")
+                print(f"❌ SkillRack request failed with status code {response.status_code}")
         except Exception as e:
-            print(f"❌ Exception occurred while scraping SkillRack: {e}")
+            print(f"❌ Exception occurred during SkillRack scrape: {e}")
     
     print("❌ All SkillRack attempts failed.")
     return None
