@@ -331,7 +331,7 @@ Keep going! 🚀
         else:
             print(f"⚠ No email found for {name}, skipping email.")
 
-        save_daily_totals_with_increase(name, lc_total, sr_total, cc_total, hr_total, gh_repos)
+        # save_daily_totals_with_increase(name, lc_total, sr_total, cc_total, hr_total, gh_repos)
 
         results.append({
             'Name': name,
