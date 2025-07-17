@@ -8,21 +8,33 @@ import json
 
 st.set_page_config(page_title="Coding Team Tracker", page_icon="📊", layout="wide")
 
-# 🔥 Initialize Firebase Admin once
-firebase_json_str = st.secrets["firebase_json"]
 try:
-    firebase_key_dict = json.loads(firebase_json_str)
-    st.write("Loaded JSON successfully!")
-    st.write(firebase_key_dict.keys())  # check keys exist
+    firebase_key_dict = {
+        "type": st.secrets["firebase_json"]["type"],
+        "project_id": st.secrets["firebase_json"]["project_id"],
+        "private_key_id": st.secrets["firebase_json"]["private_key_id"],
+        "private_key": st.secrets["firebase_json"]["private_key"],
+        "client_email": st.secrets["firebase_json"]["client_email"],
+        "client_id": st.secrets["firebase_json"]["client_id"],
+        "auth_uri": st.secrets["firebase_json"]["auth_uri"],
+        "token_uri": st.secrets["firebase_json"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase_json"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase_json"]["client_x509_cert_url"]
+    }
+
+    st.success("✅ Firebase secrets loaded successfully!")
+    st.write("🔑 Keys available:", list(firebase_key_dict.keys()))
+
 except Exception as e:
-    st.error(f"Failed to parse firebase_json: {e}")
-    
+    st.error(f"❌ Failed to load Firebase secrets: {e}")
+
+# Initialize Firebase app only once
 if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_key_dict)  # your parsed JSON dict
+    cred = credentials.Certificate(firebase_key_dict)
     firebase_admin.initialize_app(cred)
 
-db = firestore.client() 
-
+# Connect to Firestore
+db = firestore.client()
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
 
