@@ -1,7 +1,7 @@
 import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
-import os  
+import os
 import json
 
 def read_google_sheet(sheet_name, worksheet_index=0):
@@ -9,38 +9,23 @@ def read_google_sheet(sheet_name, worksheet_index=0):
     Reads data from a Google Sheet and returns a pandas DataFrame.
     """
     try:
-        # Define the scope
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive"
-        ]
-
-        # Authorize the client
+        # Get credentials from environment variable
         gsheets_cred_json = os.environ.get("GSHEETS_CREDENTIALS")
-        if gsheets_cred_json is None:
+        if not gsheets_cred_json:
             raise ValueError("❌ GSHEETS_CREDENTIALS environment variable not found.")
 
-        with open("credentials.json", "w") as f:
-            f.write(gsheets_cred_json)
-
-        # Proceed to authorize
+        # Load credentials from string (don't write to file)
+        creds_dict = json.loads(gsheets_cred_json)
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
-
 
         print("✅ Successfully connected to Google Sheets API.")
 
-        # Open the Google Sheet
+        # Open the Google Sheet and read
         sheet = client.open(sheet_name)
-
-        # Select the worksheet (default first worksheet)
         worksheet = sheet.get_worksheet(worksheet_index)
-
-        # Get all records as list of dicts
         records = worksheet.get_all_records()
-
-        # Convert to pandas DataFrame
         df = pd.DataFrame(records)
 
         print(f"✅ Successfully read {len(df)} rows from '{sheet_name}'.")
@@ -53,9 +38,7 @@ def read_google_sheet(sheet_name, worksheet_index=0):
         return None
 
 if __name__ == "__main__":
-    # Change this to your actual sheet name (visible on Google Sheets)
     SHEET_NAME = "coding_team_profiles"
-
     df = read_google_sheet(SHEET_NAME)
 
     if df is not None:
