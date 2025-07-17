@@ -1,6 +1,8 @@
 import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
+import os  
+import json
 
 def read_google_sheet(sheet_name, worksheet_index=0):
     """
