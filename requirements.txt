@@ -8,3 +8,5 @@ google-auth
 gspread
 oauth2client
 python-dotenv
+os
+json
