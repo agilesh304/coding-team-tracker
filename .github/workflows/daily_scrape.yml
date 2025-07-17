@@ -28,5 +28,5 @@ jobs:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
           # Add other env variables if needed (like email creds)
         run: |
-          echo "$FIREBASE_CREDENTIALS" > coding-team-profiles-f261cdfc13d8.json
+          echo "$FIREBASE_CREDENTIALS" > coding-team-profiles-2b0b4df65b4a.json
           python daily_scraper.py
