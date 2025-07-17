@@ -124,9 +124,33 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize Firebase
+try:
+    firebase_key_dict = {
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"],
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+        "universe_domain": st.secrets["firebase"]["universe_domain"]
+    }
+
+    # st.success("✅ Firebase secrets loaded successfully!")
+    # st.write("🔑 Keys available:", list(firebase_key_dict.keys()))
+
+except Exception as e:
+    st.error(f"❌ Failed to load Firebase secrets: {e}")
+
+# Initialize Firebase app only once
 if not firebase_admin._apps:
-    cred = credentials.Certificate("coding-team-profiles-2b0b4df65b4a.json")
+    cred = credentials.Certificate(firebase_key_dict)
     firebase_admin.initialize_app(cred)
+
+# ✅ Now define Firestore client
 db = firestore.client()
 
 # Title with gradient background
