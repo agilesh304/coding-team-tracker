@@ -14,8 +14,18 @@ def read_google_sheet(sheet_name, worksheet_index=0):
         ]
 
         # Authorize the client
+        gsheets_cred_json = os.environ.get("GSHEETS_CREDENTIALS")
+        if gsheets_cred_json is None:
+            raise ValueError("❌ GSHEETS_CREDENTIALS environment variable not found.")
+
+        with open("credentials.json", "w") as f:
+            f.write(gsheets_cred_json)
+
+        # Proceed to authorize
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
         client = gspread.authorize(creds)
+
 
         print("✅ Successfully connected to Google Sheets API.")
 
