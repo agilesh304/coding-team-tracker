@@ -35,6 +35,8 @@ except Exception as e:
 if not firebase_admin._apps:
     cred = credentials.Certificate(firebase_key_dict)
     firebase_admin.initialize_app(cred)
+# ✅ Now define Firestore client
+db = firestore.client()
 
 st.title("📊 Coding Team Daily & Weekly Tracker")
 
