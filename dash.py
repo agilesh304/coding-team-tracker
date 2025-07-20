@@ -748,8 +748,8 @@ with tab3:
             )
             fig.update_layout(
                 title=f"{user}'s Cumulative Progress",
-                plot_bgcolor='white',
-                paper_bgcolor='white',
+                plot_bgcolor='black',
+                paper_bgcolor='black',
                 hovermode="x unified",
                 legend_title_text='Platform',
                 font=dict(color='#2d3748')
@@ -773,8 +773,8 @@ with tab3:
             )
             fig.update_layout(
                 title=f"{user}'s Daily Activity",
-                plot_bgcolor='white',
-                paper_bgcolor='white',
+                plot_bgcolor='black',
+                paper_bgcolor='black',
                 barmode='stack',
                 legend_title_text='Platform',
                 font=dict(color='#2d3748')
