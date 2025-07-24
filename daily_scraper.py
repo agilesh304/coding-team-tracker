@@ -271,6 +271,8 @@ def get_skillrack_total(skillrack_url):
         print(f"❌ Error scraping SkillRack with requests: {e}")
         return None
 
+    print(response.text[:1000])
+
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
