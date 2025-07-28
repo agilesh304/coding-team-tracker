@@ -190,7 +190,13 @@ except ValueError:
     firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Referer": "https://www.google.com/"
+}
 
 # ————— NEW SCRAPERS —————
 """
@@ -276,11 +282,17 @@ def get_github_repo_count(username):
     if not username:
         return 0
     try:
-        url = f"https://api.github.com/users/{username}/repos"
-        r = requests.get(url, headers=HEADERS, timeout=10)
+        headers = HEADERS.copy()
+        if os.getenv('GITHUB_TOKEN'):
+            headers['Authorization'] = f"token {os.getenv('GITHUB_TOKEN')}"
+            
+        url = f"https://api.github.com/users/{username}/repos?per_page=100"
+        r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
             return len(data)
+        elif r.status_code == 403:
+            print("⚠ GitHub API rate limit exceeded")
     except Exception as e:
         print(f"⚠ Error scraping GitHub ({username}): {e}")
     return 0
@@ -385,23 +397,91 @@ def get_leetcode_total(profile_url):
         pass
     return 0
 
-def get_skillrack_total(url, retries=2, delay=2):
+def get_skillrack_total(url, max_retries=3, initial_delay=2, backoff_factor=2):
+    """
+    Improved Skillrack scraper with:
+    - Better error handling
+    - Exponential backoff retry mechanism
+    - More robust element selection
+    - Debug logging
+    - Session persistence
+    """
     if not url:
+        print("⚠ No Skillrack URL provided")
         return 0
-    for _ in range(retries+1):
+
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    
+    # Clean the URL (remove trailing slash if present)
+    url = url.rstrip('/')
+    
+    delay = initial_delay
+    last_exception = None
+    
+    for attempt in range(max_retries):
         try:
-            time.sleep(delay)
-            r = requests.get(url, headers=HEADERS, timeout=10)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, "html.parser")
-                for stat in soup.select("div.ui.six.small.statistics > div.statistic"):
-                    lbl = stat.find("div", class_="label")
-                    if lbl and lbl.get_text(strip=True) == "PROGRAMS SOLVED":
-                        val = stat.find("div", class_="value")
-                        nums = re.findall(r"\d+", val.get_text()) if val else []
-                        return int(nums[0]) if nums else 0
-        except Exception:
-            pass
+            # Add delay between retries (except first attempt)
+            if attempt > 0:
+                print(f"🔄 Retry #{attempt} after {delay} seconds...")
+                time.sleep(delay)
+                delay *= backoff_factor  # Exponential backoff
+
+            print(f"🌐 Fetching Skillrack profile (attempt {attempt + 1}): {url}")
+            
+            # First request to get session cookies
+            response = session.get(url, timeout=15)
+            response.raise_for_status()
+            
+            # Check if we got redirected to login page
+            if 'login' in response.url.lower():
+                raise Exception("Redirected to login page - profile may be private")
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Method 1: New layout (statistics cards)
+            stats = soup.select('div.ui.statistic')
+            if stats:
+                print("🔍 Found statistics cards layout")
+                for stat in stats:
+                    label = stat.select_one('div.label')
+                    value = stat.select_one('div.value')
+                    if label and value and 'programs solved' in label.get_text().lower():
+                        count_text = value.get_text().strip()
+                        count = int(''.join(filter(str.isdigit, count_text)))
+                        print(f"✅ Found programs solved: {count}")
+                        return count
+            
+            # Method 2: Old layout (progress bar)
+            progress_div = soup.find('div', class_='ui indicating progress')
+            if progress_div:
+                print("🔍 Found progress bar layout")
+                progress_data = progress_div.get('data-value', '0')
+                try:
+                    count = int(float(progress_data))
+                    print(f"✅ Found programs solved: {count}")
+                    return count
+                except ValueError:
+                    pass
+            
+            # Method 3: Direct text search (fallback)
+            page_text = soup.get_text().lower()
+            if 'programs solved' in page_text:
+                print("🔍 Using text search fallback")
+                match = re.search(r'programs solved[\s:]*(\d+)', page_text)
+                if match:
+                    count = int(match.group(1))
+                    print(f"✅ Found programs solved: {count}")
+                    return count
+            
+            raise Exception("Could not find programs solved count in page")
+            
+        except Exception as e:
+            last_exception = e
+            print(f"⚠ Attempt {attempt + 1} failed: {str(e)}")
+            continue
+    
+    print(f"❌ All {max_retries} attempts failed. Last error: {str(last_exception)}")
     return 0
 
 # ————— MAIN DAILY SCRAPE —————
