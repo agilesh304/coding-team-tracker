@@ -13,44 +13,183 @@ import os
 import json
 from playwright.sync_api import sync_playwright
 
-def send_email_summary(to_email, subject, body, from_email, app_password):
+def send_email_summary(to_email, subject, body, from_email, app_password, name, daily_data):
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('alternative')
         msg['From'] = from_email
         msg['To'] = to_email
         msg['Subject'] = subject
 
-        msg.attach(MIMEText(body, 'plain'))
+        # Extract data from daily_data dictionary
+        lc_total = daily_data['leetcode_total']
+        lc_diff = daily_data['leetcode_daily_increase']
+        sr_total = daily_data['skillrack_total']
+        sr_diff = daily_data['skillrack_daily_increase']
+        cc_total = daily_data['codechef_total']
+        cc_diff = daily_data['codechef_daily_increase']
+        hr_total = daily_data['hackerrank_total']
+        hr_diff = daily_data['hackerrank_daily_increase']
+        gh_repos = daily_data['github_repos']
+        gh_diff = daily_data['github_daily_increase']
+
+        # Create the HTML version of your message
+        html = f"""\
+        <html>
+          <head>
+            <style>
+              body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+              }}
+              .header {{
+                background-color: #f8f9fa;
+                padding: 20px;
+                text-align: center;
+                border-radius: 8px 8px 0 0;
+              }}
+              .content {{
+                padding: 20px;
+                background-color: #ffffff;
+                border-left: 1px solid #e1e4e8;
+                border-right: 1px solid #e1e4e8;
+              }}
+              .stats {{
+                margin: 20px 0;
+              }}
+              .stat-item {{
+                margin-bottom: 15px;
+                padding: 12px;
+                background-color: #f6f8fa;
+                border-radius: 6px;
+                border-left: 4px solid #0366d6;
+              }}
+              .daily-progress {{
+                font-size: 0.9em;
+                color: #22863a;
+                font-weight: bold;
+                margin-left: 5px;
+              }}
+              .footer {{
+                padding: 20px;
+                text-align: center;
+                font-size: 0.9em;
+                color: #6a737d;
+                background-color: #f8f9fa;
+                border-radius: 0 0 8px 8px;
+              }}
+              .emoji {{
+                font-size: 1.2em;
+                margin-right: 8px;
+              }}
+              h1 {{
+                color: #24292e;
+                margin-top: 0;
+              }}
+              .highlight {{
+                background-color: #fff8c5;
+                padding: 2px 4px;
+                border-radius: 4px;
+              }}
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>🚀 Daily Coding Report</h1>
+              <p>Your personalized progress update for {datetime.now().strftime('%B %d, %Y')}</p>
+            </div>
+            
+            <div class="content">
+              <p>Hi <strong>{name}</strong>, 👋</p>
+              <p>Here's your coding progress since yesterday. Keep up the great work!</p>
+              
+              <div class="stats">
+                <div class="stat-item">
+                  <span class="emoji">🧠</span> <strong>LeetCode:</strong> {lc_total} total problems
+                  <span class="daily-progress">(+{lc_diff} today)</span>
+                </div>
+                <div class="stat-item">
+                  <span class="emoji">🎯</span> <strong>SkillRack:</strong> {sr_total} total programs
+                  <span class="daily-progress">(+{sr_diff} today)</span>
+                </div>
+                <div class="stat-item">
+                  <span class="emoji">🥇</span> <strong>CodeChef:</strong> {cc_total} total problems
+                  <span class="daily-progress">(+{cc_diff} today)</span>
+                </div>
+                <div class="stat-item">
+                  <span class="emoji">🏅</span> <strong>HackerRank:</strong> {hr_total} total badges
+                  <span class="daily-progress">(+{hr_diff} today)</span>
+                </div>
+                <div class="stat-item">
+                  <span class="emoji">💻</span> <strong>GitHub:</strong> {gh_repos} total repositories
+                  <span class="daily-progress">(+{gh_diff} today)</span>
+                </div>
+              </div>
+              
+              <p>Your <span class="highlight">daily total: {lc_diff + sr_diff + cc_diff + hr_diff + gh_diff}</span> problems solved across all platforms! 🎉</p>
+              
+              <p>Every problem you solve makes you a better developer. Keep pushing forward! 💪</p>
+              
+              <p><em>"The expert in anything was once a beginner."</em> - Helen Hayes</p>
+            </div>
+            
+            <div class="footer">
+              <p>Happy coding,<br>Your <strong>Code Tracking Team</strong></p>
+              <p>✨ You're making progress every day!</p>
+            </div>
+          </body>
+        </html>
+        """
+
+        # Plain text version
+        text = f"""\
+Hi {name},
+
+Here's your daily coding progress report for {datetime.now().strftime('%B %d, %Y')}:
+
+📊 Today's Progress:
+- LeetCode: +{lc_diff} problems (Total: {lc_total})
+- SkillRack: +{sr_diff} programs (Total: {sr_total})
+- CodeChef: +{cc_diff} problems (Total: {cc_total})
+- HackerRank: +{hr_diff} badges (Total: {hr_total})
+- GitHub: +{gh_diff} repositories (Total: {gh_repos})
+
+🎯 Daily Total: {lc_diff + sr_diff + cc_diff + hr_diff + gh_diff} problems solved!
+
+Keep up the great work! Every problem you solve brings you closer to mastery.
+
+Happy coding,
+Your Code Tracking Team
+"""
+
+        # Create both plain and HTML versions
+        part1 = MIMEText(text, 'plain')
+        part2 = MIMEText(html, 'html')
+
+        # Attach both versions
+        msg.attach(part1)
+        msg.attach(part2)
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(from_email, app_password)
-        text = msg.as_string()
-        server.sendmail(from_email, to_email, text)
+        server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
         print(f"✅ Email sent to {to_email}")
     except Exception as e:
         print(f"⚠ Failed to send email to {to_email}: {e}")
 
 # ————— FIREBASE SETUP —————
-firebase_key_json = os.environ.get("FIREBASE_CREDENTIALS")
-
-if firebase_key_json is None:
-    raise ValueError("❌ FIREBASE_CREDENTIALS environment variable not found.")
-
-# Write the string content to a temporary JSON file
-with open("firebase_temp_key.json", "w") as f:
-    f.write(firebase_key_json)
-
-# Initialize Firebase
-cred = credentials.Certificate("firebase_temp_key.json")
+cred = credentials.Certificate("coding-team-profiles-2b0b4df65b4a.json")
 try:
     firebase_admin.get_app()
 except ValueError:
     firebase_admin.initialize_app(cred)
-
-# Initialize Firestore
 db = firestore.client()
+
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 # ————— NEW SCRAPERS —————
@@ -110,16 +249,29 @@ def get_hackerrank_solved(username):
     if not username:
         return 0
     try:
-        url = f"https://www.hackerrank.com/profile/{username}"
-        r = requests.get(url, headers=HEADERS, timeout=10)
+        url = f"https://www.hackerrank.com/rest/hackers/{username}/badges"
+        params = {
+            'limit': '1000',  # Increase limit to get all badges
+            'filter': 'categories:problem_solving'
+        }
+        
+        r = requests.get(url, headers=HEADERS, params=params, timeout=10)
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
-        badges = soup.find_all("div", class_="badge-title")
-        return len(badges)
+        data = r.json()
+        
+        # Count solved problems from badges data
+        solved = 0
+        if data and 'models' in data:
+            for badge in data['models']:
+                if badge['solved']:  # Only count badges where problems were solved
+                    solved += badge['solved']
+        
+        return solved
+        
     except Exception as e:
         print(f"⚠ Error scraping HackerRank ({username}): {e}")
-    return 0
-
+        return 0
+    
 def get_github_repo_count(username):
     if not username:
         return 0
@@ -233,55 +385,30 @@ def get_leetcode_total(profile_url):
         pass
     return 0
 
-
-
-import requests
-from bs4 import BeautifulSoup
-import re
-
-def get_skillrack_total(skillrack_url):
-    if not skillrack_url:
-        return None
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
-            "Referer": "https://skillrack.com/",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-
-        response = requests.get(skillrack_url, headers=headers, timeout=15)
-
-        if response.status_code != 200:
-            print(f"❌ Failed to fetch SkillRack page, status: {response.status_code}")
-            return None
-
-        soup = BeautifulSoup(response.text, "html.parser")
-        stats = soup.select("div.ui.six.small.statistics > div.statistic")
-
-        for stat in stats:
-            label = stat.select_one("div.label")
-            value = stat.select_one("div.value")
-            if label and label.get_text(strip=True) == "PROGRAMS SOLVED":
-                text = value.get_text()
-                match = re.search(r"\d+", text)
-                return int(match.group()) if match else 0
-
-        return None
-    except Exception as e:
-        print(f"❌ Error scraping SkillRack with requests: {e}")
-        return None
-
-    print(response.text[:1000])
+def get_skillrack_total(url, retries=2, delay=2):
+    if not url:
+        return 0
+    for _ in range(retries+1):
+        try:
+            time.sleep(delay)
+            r = requests.get(url, headers=HEADERS, timeout=10)
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, "html.parser")
+                for stat in soup.select("div.ui.six.small.statistics > div.statistic"):
+                    lbl = stat.find("div", class_="label")
+                    if lbl and lbl.get_text(strip=True) == "PROGRAMS SOLVED":
+                        val = stat.find("div", class_="value")
+                        nums = re.findall(r"\d+", val.get_text()) if val else []
+                        return int(nums[0]) if nums else 0
+        except Exception:
+            pass
+    return 0
 
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
     df = read_google_sheet("coding_team_profiles")
-    if df is None:
-        print("❌ Failed to read Google Sheet. `df` is None.")
-        return
-    else:
-        df.columns = df.columns.str.strip()
+    df.columns = df.columns.str.strip()
     print(f"✅ Read {len(df)} rows")
 
         # your Gmail
@@ -298,6 +425,50 @@ def daily_scrape_all():
         cc_id = row.get("CodeChef Profile URL", "")
         hr_id = row.get("Hackerrank Profile URL", "")
         gh_user = row.get("GitHub Profile URL", "")
+
+        # Get current totals
+        lc_total = get_leetcode_total(lc_url)
+        sr_total = get_skillrack_total(sr_url)
+        cc_total = get_codechef_solved(cc_id)
+        hr_total = get_hackerrank_solved(hr_id)
+        gh_repos = get_github_repo_count(gh_user)
+
+        # Get yesterday's data from Firestore
+        today = datetime.now().strftime("%Y-%m-%d")
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        
+        # Initialize daily differences as 0 (in case no yesterday data exists)
+        lc_diff = sr_diff = cc_diff = hr_diff = gh_diff = 0
+        
+        # Try to get yesterday's data
+        try:
+            coll = db.collection('users').document(name).collection('daily_totals')
+            y_doc = coll.document(yesterday).get()
+            
+            if y_doc.exists:
+                y_data = y_doc.to_dict()
+                lc_diff = lc_total - y_data.get('leetcode_total', 0)
+                sr_diff = sr_total - y_data.get('skillrack_total', 0)
+                cc_diff = cc_total - y_data.get('codechef_total', 0)
+                hr_diff = hr_total - y_data.get('hackerrank_total', 0)
+                gh_diff = gh_repos - y_data.get('github_repos', 0)
+        except Exception as e:
+            print(f"⚠ Error fetching yesterday's data for {name}: {e}")
+
+        # Prepare daily_data dictionary
+        daily_data = {
+            'leetcode_total': lc_total,
+            'leetcode_daily_increase': lc_diff,
+            'skillrack_total': sr_total,
+            'skillrack_daily_increase': sr_diff,
+            'codechef_total': cc_total,
+            'codechef_daily_increase': cc_diff,
+            'hackerrank_total': hr_total,
+            'hackerrank_daily_increase': hr_diff,
+            'github_repos': gh_repos,
+            'github_daily_increase': gh_diff
+            }
+
 
         print(f"\n👤 {name}")
         lc_total = get_leetcode_total(lc_url)
@@ -319,24 +490,30 @@ def daily_scrape_all():
         body = f"""
 Hi {name} 👋,
 
-Here is your daily coding summary:
+Here's your 🚀 *Daily Coding Snapshot* — you're doing great!
 
-✅ LeetCode solved: {lc_total}
-✅ Skillrack solved: {sr_total}
-✅ CodeChef problems solved: {cc_total}
-✅ HackerRank badges: {hr_total}
-✅ GitHub repos: {gh_repos}
+📊 **Progress Overview**:
+- 🧠 LeetCode problems solved: **{lc_total}**
+- 🎯 SkillRack programs solved: **{sr_total}**
+- 🥇 CodeChef problems solved: **{cc_total}**
+- 🏅 HackerRank badges: **{hr_total}**
+- 💻 GitHub repositories: **{gh_repos}**
 
-Keep going! 🚀
+Keep pushing forward — every line of code makes you stronger! 💪  
+You're building something amazing. See you tomorrow with more wins! 🔥
+
+Happy coding,  
+✨ *Your Daily Code Tracker*
+
 """
 
         subject = "📊 Your Daily Coding Summary"
         if email:
-            send_email_summary(email, subject, body, from_email, app_password)
+            send_email_summary(email, subject, body, from_email, app_password, name, daily_data)
         else:
             print(f"⚠ No email found for {name}, skipping email.")
 
-        # save_daily_totals_with_increase(name, lc_total, sr_total, cc_total, hr_total, gh_repos)
+        #save_daily_totals_with_increase(name, lc_total, sr_total, cc_total, hr_total, gh_repos)
 
         results.append({
             'Name': name,
@@ -353,3 +530,4 @@ Keep going! 🚀
 
 if __name__ == "__main__":
     daily_scrape_all()
+
