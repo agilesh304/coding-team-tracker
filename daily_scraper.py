@@ -492,8 +492,8 @@ def daily_scrape_all():
     print(f"✅ Read {len(df)} rows")
 
         # your Gmail
-    from_email = "bytebreakers04@gmail.com"
-    app_password = "mtdb asem sbat apah"  # app password from Googl
+    from_email = os.getenv("EMAIL_USER")
+    app_password = os.getenv("EMAIL_PASSWORD")  # app password from Googl
 
     results = []
 
