@@ -1,12 +1,13 @@
 import gspread
 import pandas as pd
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 import os
 import json
 
 def read_google_sheet(sheet_name, worksheet_index=0):
     """
     Reads data from a Google Sheet and returns a pandas DataFrame.
+    Uses google-auth instead of deprecated oauth2client.
     """
     try:
         # Get credentials from environment variable
@@ -14,21 +15,28 @@ def read_google_sheet(sheet_name, worksheet_index=0):
         if not gsheets_cred_json:
             raise ValueError("❌ GSHEETS_CREDENTIALS environment variable not found.")
 
-        # Load credentials from string (don't write to file)
+        # Convert JSON string to dictionary
         creds_dict = json.loads(gsheets_cred_json)
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
 
-        print("✅ Successfully connected to Google Sheets API.")
+        # Define required scopes
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
 
-        # Open the Google Sheet and read
+        # Load credentials
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        client = gspread.authorize(credentials)
+
+        print("✅ Connected to Google Sheets.")
+
+        # Access sheet
         sheet = client.open(sheet_name)
         worksheet = sheet.get_worksheet(worksheet_index)
         records = worksheet.get_all_records()
         df = pd.DataFrame(records)
 
-        print(f"✅ Successfully read {len(df)} rows from '{sheet_name}'.")
+        print(f"✅ Read {len(df)} rows from '{sheet_name}'.")
 
         return df
 
@@ -37,6 +45,7 @@ def read_google_sheet(sheet_name, worksheet_index=0):
         print(f"Error: {e}")
         return None
 
+# For local testing
 if __name__ == "__main__":
     SHEET_NAME = "coding_team_profiles"
     df = read_google_sheet(SHEET_NAME)
