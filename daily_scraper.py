@@ -217,7 +217,7 @@ def get_codechef_solved(username):
         print(f"⚠ Error scraping CodeChef ({username}): {e}")
     return 0
 """
-def get_codechef_solved_playwright(username):
+def get_codechef_solved(username):
     if not username:
         return 0
 
