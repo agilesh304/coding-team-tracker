@@ -395,7 +395,7 @@ def get_leetcode_total(profile_url):
         pass
     return 0
 
-def get_skillrack_total_playwright(url):
+def get_skillrack_total(url):
     if not url:
         print("⚠ No Skillrack URL provided")
         return 0
