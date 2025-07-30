@@ -221,32 +221,37 @@ def get_codechef_solved(username):
     if not username:
         print("⚠ No CodeChef username provided")
         return 0
+
     try:
         url = f"https://www.codechef.com/users/{username}"
-        print(f"🔍 Fetching CodeChef profile: {url}")
+        print(f"🌐 Fetching CodeChef profile: {url}")
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
 
         soup = BeautifulSoup(r.text, "html.parser")
+
+        # Look for the problems solved section
         section = soup.find("section", class_="rating-data-section problems-solved")
         if section:
-            print("✅ Found problems-solved section:")
-            print(section.prettify())  # debug: see what’s inside
+            print("✅ Found problems-solved section")
+            print(section.prettify())  # for debugging purposes
 
-            # Look for all <h3> tags and match text like "Total Problems Solved: 1"
             h3_tags = section.find_all("h3")
             for tag in h3_tags:
                 text = tag.get_text(strip=True)
-                print(f"🪄 Found h3 text: {text}")
+                print(f"🔎 Checking h3 tag: {text}")
                 m = re.search(r"Total Problems Solved:\s*(\d+)", text)
                 if m:
-                    print(f"✅ Parsed solved count: {m.group(1)}")
-                    return int(m.group(1))
-            print("⚠ 'Total Problems Solved' h3 not found or regex didn't match")
+                    count = int(m.group(1))
+                    print(f"✅ Parsed solved count: {count}")
+                    return count
+
+            print("⚠ 'Total Problems Solved' text not found in h3 tags")
         else:
             print("⚠ problems-solved section not found")
     except Exception as e:
-        print(f"⚠ Error scraping CodeChef ({username}): {e}")
+        print(f"❌ Error scraping CodeChef for {username}: {e}")
+
     return 0
 
 
@@ -399,12 +404,8 @@ def get_leetcode_total(profile_url):
 
 def get_skillrack_total(url, max_retries=3, initial_delay=2, backoff_factor=2):
     """
-    Improved Skillrack scraper with:
-    - Better error handling
-    - Exponential backoff retry mechanism
-    - More robust element selection
-    - Debug logging
-    - Session persistence
+    Fetches the number of programs solved on Skillrack using various fallback methods.
+    Implements retry logic and adaptive HTML parsing.
     """
     if not url:
         print("⚠ No Skillrack URL provided")
@@ -412,78 +413,69 @@ def get_skillrack_total(url, max_retries=3, initial_delay=2, backoff_factor=2):
 
     session = requests.Session()
     session.headers.update(HEADERS)
-    
-    # Clean the URL (remove trailing slash if present)
     url = url.rstrip('/')
-    
+
     delay = initial_delay
     last_exception = None
-    
+
     for attempt in range(max_retries):
         try:
-            # Add delay between retries (except first attempt)
             if attempt > 0:
-                print(f"🔄 Retry #{attempt} after {delay} seconds...")
+                print(f"🔁 Retry #{attempt} after {delay} seconds...")
                 time.sleep(delay)
-                delay *= backoff_factor  # Exponential backoff
+                delay *= backoff_factor
 
-            print(f"🌐 Fetching Skillrack profile (attempt {attempt + 1}): {url}")
-            
-            # First request to get session cookies
+            print(f"🌐 Fetching Skillrack profile (Attempt {attempt + 1}): {url}")
             response = session.get(url, timeout=15)
             response.raise_for_status()
-            
-            # Check if we got redirected to login page
+
             if 'login' in response.url.lower():
-                raise Exception("Redirected to login page - profile may be private")
-            
+                raise Exception("Redirected to login page - Profile may be private")
+
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Method 1: New layout (statistics cards)
+
+            # ✅ Method 1: Statistic cards layout
             stats = soup.select('div.ui.statistic')
             if stats:
-                print("🔍 Found statistics cards layout")
+                print("🔍 Detected statistics card layout")
                 for stat in stats:
                     label = stat.select_one('div.label')
                     value = stat.select_one('div.value')
                     if label and value and 'programs solved' in label.get_text().lower():
-                        count_text = value.get_text().strip()
+                        count_text = value.get_text(strip=True)
                         count = int(''.join(filter(str.isdigit, count_text)))
-                        print(f"✅ Found programs solved: {count}")
+                        print(f"✅ Programs solved (card): {count}")
                         return count
-            
-            # Method 2: Old layout (progress bar)
+
+            # ✅ Method 2: Progress bar layout
             progress_div = soup.find('div', class_='ui indicating progress')
             if progress_div:
-                print("🔍 Found progress bar layout")
+                print("🔍 Detected progress bar layout")
                 progress_data = progress_div.get('data-value', '0')
                 try:
                     count = int(float(progress_data))
-                    print(f"✅ Found programs solved: {count}")
+                    print(f"✅ Programs solved (progress): {count}")
                     return count
                 except ValueError:
-                    pass
-            
-            # Method 3: Direct text search (fallback)
+                    print("⚠ Could not parse progress bar value")
+
+            # ✅ Method 3: Fallback - plain text search
             page_text = soup.get_text().lower()
-            if 'programs solved' in page_text:
-                print("🔍 Using text search fallback")
-                match = re.search(r'programs solved[\s:]*(\d+)', page_text)
-                if match:
-                    count = int(match.group(1))
-                    print(f"✅ Found programs solved: {count}")
-                    return count
-            
-            raise Exception("Could not find programs solved count in page")
-            
+            match = re.search(r'programs solved[\s:]*([0-9]+)', page_text)
+            if match:
+                count = int(match.group(1))
+                print(f"✅ Programs solved (text fallback): {count}")
+                return count
+
+            raise Exception("Could not extract 'Programs Solved' from any method")
+
         except Exception as e:
             last_exception = e
-            print(f"⚠ Attempt {attempt + 1} failed: {str(e)}")
+            print(f"⚠ Attempt {attempt + 1} failed: {e}")
             continue
-    
-    print(f"❌ All {max_retries} attempts failed. Last error: {str(last_exception)}")
-    return 0
 
+    print(f"❌ All {max_retries} attempts failed. Last error: {last_exception}")
+    return 0
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
