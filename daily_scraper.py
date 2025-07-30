@@ -217,41 +217,34 @@ def get_codechef_solved(username):
         print(f"⚠ Error scraping CodeChef ({username}): {e}")
     return 0
 """
-def get_codechef_solved(username):
+def get_codechef_solved_playwright(username):
     if not username:
-        print("⚠ No CodeChef username provided")
         return 0
 
     try:
         url = f"https://www.codechef.com/users/{username}"
-        print(f"🌐 Fetching CodeChef profile: {url}")
-        r = requests.get(url, headers=HEADERS, timeout=10)
-        r.raise_for_status()
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, timeout=30000)
+            page.wait_for_timeout(3000)
 
-        soup = BeautifulSoup(r.text, "html.parser")
+            content = page.content()
+            soup = BeautifulSoup(content, 'html.parser')
 
-        # Look for the problems solved section
-        section = soup.find("section", class_="rating-data-section problems-solved")
-        if section:
-            print("✅ Found problems-solved section")
-            print(section.prettify())  # for debugging purposes
+            section = soup.find("section", class_="rating-data-section problems-solved")
+            if section:
+                h3_tags = section.find_all("h3")
+                for tag in h3_tags:
+                    text = tag.get_text(strip=True)
+                    match = re.search(r"Total Problems Solved:\s*(\d+)", text)
+                    if match:
+                        browser.close()
+                        return int(match.group(1))
 
-            h3_tags = section.find_all("h3")
-            for tag in h3_tags:
-                text = tag.get_text(strip=True)
-                print(f"🔎 Checking h3 tag: {text}")
-                m = re.search(r"Total Problems Solved:\s*(\d+)", text)
-                if m:
-                    count = int(m.group(1))
-                    print(f"✅ Parsed solved count: {count}")
-                    return count
-
-            print("⚠ 'Total Problems Solved' text not found in h3 tags")
-        else:
-            print("⚠ problems-solved section not found")
+            browser.close()
     except Exception as e:
-        print(f"❌ Error scraping CodeChef for {username}: {e}")
-
+        print(f"❌ Playwright error for CodeChef: {e}")
     return 0
 
 
@@ -402,80 +395,37 @@ def get_leetcode_total(profile_url):
         pass
     return 0
 
-def get_skillrack_total(url, max_retries=3, initial_delay=2, backoff_factor=2):
-    """
-    Fetches the number of programs solved on Skillrack using various fallback methods.
-    Implements retry logic and adaptive HTML parsing.
-    """
+def get_skillrack_total_playwright(url):
     if not url:
         print("⚠ No Skillrack URL provided")
         return 0
 
-    session = requests.Session()
-    session.headers.update(HEADERS)
-    url = url.rstrip('/')
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, timeout=30000)
+            page.wait_for_timeout(3000)  # Allow time for JS to load
+            
+            # Try extracting 'Programs Solved'
+            content = page.content()
+            soup = BeautifulSoup(content, 'html.parser')
 
-    delay = initial_delay
-    last_exception = None
-
-    for attempt in range(max_retries):
-        try:
-            if attempt > 0:
-                print(f"🔁 Retry #{attempt} after {delay} seconds...")
-                time.sleep(delay)
-                delay *= backoff_factor
-
-            print(f"🌐 Fetching Skillrack profile (Attempt {attempt + 1}): {url}")
-            response = session.get(url, timeout=15)
-            response.raise_for_status()
-
-            if 'login' in response.url.lower():
-                raise Exception("Redirected to login page - Profile may be private")
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            # ✅ Method 1: Statistic cards layout
             stats = soup.select('div.ui.statistic')
-            if stats:
-                print("🔍 Detected statistics card layout")
-                for stat in stats:
-                    label = stat.select_one('div.label')
-                    value = stat.select_one('div.value')
-                    if label and value and 'programs solved' in label.get_text().lower():
-                        count_text = value.get_text(strip=True)
-                        count = int(''.join(filter(str.isdigit, count_text)))
-                        print(f"✅ Programs solved (card): {count}")
-                        return count
-
-            # ✅ Method 2: Progress bar layout
-            progress_div = soup.find('div', class_='ui indicating progress')
-            if progress_div:
-                print("🔍 Detected progress bar layout")
-                progress_data = progress_div.get('data-value', '0')
-                try:
-                    count = int(float(progress_data))
-                    print(f"✅ Programs solved (progress): {count}")
+            for stat in stats:
+                label = stat.select_one('div.label')
+                value = stat.select_one('div.value')
+                if label and value and 'programs solved' in label.get_text().lower():
+                    count_text = value.get_text(strip=True)
+                    count = int(''.join(filter(str.isdigit, count_text)))
+                    browser.close()
                     return count
-                except ValueError:
-                    print("⚠ Could not parse progress bar value")
 
-            # ✅ Method 3: Fallback - plain text search
-            page_text = soup.get_text().lower()
-            match = re.search(r'programs solved[\s:]*([0-9]+)', page_text)
-            if match:
-                count = int(match.group(1))
-                print(f"✅ Programs solved (text fallback): {count}")
-                return count
-
-            raise Exception("Could not extract 'Programs Solved' from any method")
-
-        except Exception as e:
-            last_exception = e
-            print(f"⚠ Attempt {attempt + 1} failed: {e}")
-            continue
-
-    print(f"❌ All {max_retries} attempts failed. Last error: {last_exception}")
+            browser.close()
+    except Exception as e:
+        print(f"❌ Playwright error: {e}")
     return 0
+    
 # ————— MAIN DAILY SCRAPE —————
 def daily_scrape_all():
     print("✅ Starting daily scrape…")
