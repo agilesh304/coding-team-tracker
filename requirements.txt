@@ -6,7 +6,6 @@ beautifulsoup4
 plotly
 google-auth
 gspread
-oauth2client
 python-dotenv
 playwright
 streamlit_extras
